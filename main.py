@@ -96,7 +96,7 @@ def download_video(video_url):
     yt = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
     video = yt.streams.filter(only_audio=True).first()
     print("Downlaoding: ", yt.title)
-    video.download()
+    video.download("./downloaded-videos")
     print("Download complete.")
 
 
@@ -120,7 +120,8 @@ def main():
     playlist_id = str(playlists[0][1])
     tracks = get_tracks(playlist_id, token)
     
-    download_video(tracks[0])
+    for track in tracks:
+        download_video(track)
 
 main()
 
