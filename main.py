@@ -8,6 +8,9 @@ from youtubesearchpython import VideosSearch
 from pytube import YouTube
 import re
 import subprocess
+import time
+import http.client
+import locale
 
 load_dotenv()
 
@@ -16,10 +19,10 @@ client_secret = os.getenv("CLIENT_SECRET")
 user_id = os.getenv("USER_ID")
 downloads_dir = os.getenv("DOWNLOADS_DIR")
 
-def get_existing_tracks():
+def get_existing_tracks(playlist_name):
     existing_tracks = []
-    for filename in os.listdir("./" + downloads_dir):
-        if filename.endswith(".mp4"):
+    for filename in os.listdir("./" + downloads_dir + "/" + playlist_name):
+        if filename.endswith(".mp3"):
             existing_tracks.append(filename[:-4])
     return existing_tracks
 
@@ -70,7 +73,7 @@ def get_playlists(user_id, token):
     return playlist_id
 
 
-def get_tracks(playlist_id, token, existing_tracks):
+def get_tracks(playlist_id, token, existing_tracks, playlist_name):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
     headers = get_auth_header(token)
     response = get(url, headers=headers)
@@ -78,7 +81,10 @@ def get_tracks(playlist_id, token, existing_tracks):
     tracks = response_json["items"]
     
     tracks_not_found = []
+    number_of_downloads = 0
+    number_of_skips = 0
     
+    download_complete = False
     for track in tracks:
         track_name = track["track"]["name"]
         artist = track["track"]["artists"][0]["name"]
@@ -87,7 +93,17 @@ def get_tracks(playlist_id, token, existing_tracks):
         sanitized_track_name = sanitize_filename(search_string)
         
         if sanitized_track_name in existing_tracks:
-            print(f"Skipping {search_string} as it already exists.")
+            number_of_skips += 1
+            
+            if download_complete:
+                print()
+                download_complete = False
+            
+            try:
+                print(f"Skipping {search_string.encode('utf-8', errors='ignore').decode('utf-8')} as it already exists.")
+            except UnicodeEncodeError:
+                encoding = locale.getpreferredencoding()
+                print(f"Skipping {search_string.encode(encoding, errors='ignore').decode(encoding)} as it already exists.")
             continue
         
         video_url = get_video_url(search_string)
@@ -97,9 +113,11 @@ def get_tracks(playlist_id, token, existing_tracks):
             continue
         
         if video_url is not None:
-            download_song(video_url, sanitized_track_name)
+            download_song(video_url, sanitized_track_name, playlist_name)
+            download_complete = True
+            number_of_downloads += 1
             
-    return tracks_not_found
+    return tracks_not_found, number_of_downloads, number_of_skips
 
 def get_video_url(song_name):
     videosSearch = VideosSearch(song_name, limit = 1)
@@ -113,36 +131,69 @@ def get_video_url(song_name):
     return video_url
 
 
-def download_song(video_url, song_title):
+def download_song(video_url, song_title, playlist_name):
     yt = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
     audio = yt.streams.filter(only_audio=True).first()
-    print("Downlaoding: ", yt.title)
+    print("\nDownlaoding: ", yt.title)
     
     song_title = sanitize_filename(song_title)
-    output_file = audio.download(output_path=os.path.join(downloads_dir), filename=song_title + ".mp4")
-    print("OUTPUT FILE:" + output_file)
+    output_file = None
+    
+    # Retry up to 3 times
+    for _ in range(3):
+        try:
+            output_file = audio.download(output_path=os.path.join(downloads_dir, playlist_name), filename=song_title + ".mp4")
+            # print("OUTPUT FILE:" + output_file)
+            break
+        except http.client.IncompleteRead:
+            print("IncompleteRead error, retrying download...")
+            time.sleep(1)
+        except Exception as e:
+            print(f"An error occurred during download: {e}")
+            time.sleep(1)
+
+    if output_file is None:
+        print("Failed to download after 5 attempts.")
+        return
+    
     mp3_file = os.path.splitext(output_file)[0] + '.mp3'
-    print("MP3 FILE:" + mp3_file)
-    subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file], shell=True)
+    # print("MP3 FILE:" + mp3_file)
     
-    if os.path.exists(output_file):
-        os.remove(output_file)
+    print("Converting to mp3...")
     
-    print("Download complete.\n")
+    try:
+        subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file], 
+                       stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
+    except KeyboardInterrupt:
+        print("Conversion was interrupted by the user.")
+        if os.path.exists(mp3_file):
+            os.remove(mp3_file)
+    except Exception as e:
+        print(f"An error occurred during conversion: {e}")
+        if os.path.exists(mp3_file):
+            os.remove(mp3_file)
+    finally:
+        if os.path.exists(output_file):
+            os.remove(output_file)
+    
+    print("Download complete.")
 
 
 def sanitize_filename(filename):
-    return re.sub(r'[\\/*?:"<>|]', "", filename)
+    # Remove extra whitespace
+    filename = " ".join(filename.split())
+    
+    # Remove invalid characters
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+    
+    return filename
 
 
 def main():
     token = get_token()
-    
-    existing_tracks = get_existing_tracks()
-    
     playlists = get_playlists(user_id, token)
     
-    print("Playlists:\n")
+    print("\nPlaylists:\n")
     i = 0
     for playlist in playlists:
         print(f"{i}. {playlist[0]}")
@@ -159,12 +210,41 @@ def main():
     #     print("Invalid index.")
     
     playlist_id = str(playlists[0][1])
-    print(playlists[0][1])
-    print("")
+    # print(playlist_id)
     
-    tracks_not_found = get_tracks(playlist_id, token, existing_tracks)
+    playlist_name = str(playlists[0][0])
+    print("Chosen playlist: " + playlist_name)
+    sanitized_playlist_name = sanitize_filename(playlist_name)
     
-    print("All downloads complete.\n")
+    # Create a directory with the name of the playlist in the downloads directory, if it doesn't already exist
+    if not os.path.exists(os.path.join(downloads_dir, sanitized_playlist_name)):
+        os.makedirs(os.path.join(downloads_dir, sanitized_playlist_name))
+        print("Playlist directory created.\n")
+    else:
+        print("Playlist directory already exists.\n")
+    
+    existing_tracks = get_existing_tracks(sanitized_playlist_name)
+    
+    # print("Existing tracks: ")
+    # for track in existing_tracks:
+    #     try:
+    #         print(f"{track.encode('utf-8', errors='ignore').decode('utf-8')}")
+    #     except UnicodeEncodeError:
+    #         encoding = locale.getpreferredencoding()
+    #         print(f"{track.encode(encoding, errors='ignore').decode(encoding)}")
+    
+    print(f"Number of existing tracks: {len(existing_tracks)}")
+    print()
+    
+    print("Downloading songs...\n")
+    tracks_not_found, number_of_downloads, number_of_skips = get_tracks(playlist_id, token, existing_tracks, sanitized_playlist_name)
+    
+    print("\nAll downloads complete.")
+    
+    print(f"\nTracks downloaded: {number_of_downloads}")
+    print(f"Tracks skipped (Already downloaded): {number_of_skips}")
+    
+    print()
     
     if len(tracks_not_found) == 0:
         print("All tracks found.")
@@ -174,4 +254,3 @@ def main():
             print(track)
 
 main()
-
