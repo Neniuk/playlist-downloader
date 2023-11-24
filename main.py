@@ -99,11 +99,8 @@ def get_tracks(playlist_id, token, existing_tracks, playlist_name):
                 print()
                 download_complete = False
             
-            try:
-                print(f"Skipping {search_string.encode('utf-8', errors='ignore').decode('utf-8')} as it already exists.")
-            except UnicodeEncodeError:
-                encoding = locale.getpreferredencoding()
-                print(f"Skipping {search_string.encode(encoding, errors='ignore').decode(encoding)} as it already exists.")
+            skip_print_string = f"Skipping \"{search_string}\" as it already exists."
+            console_print(skip_print_string)
             continue
         
         video_url = get_video_url(search_string)
@@ -134,7 +131,9 @@ def get_video_url(song_name):
 def download_song(video_url, song_title, playlist_name):
     yt = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
     audio = yt.streams.filter(only_audio=True).first()
-    print("\nDownlaoding: ", yt.title)
+    
+    download_print_string = f"Downloading: {yt.title}"
+    console_print(download_print_string)
     
     song_title = sanitize_filename(song_title)
     output_file = None
@@ -189,6 +188,16 @@ def sanitize_filename(filename):
     return filename
 
 
+def console_print(string):
+    try:
+        print(f"{string.encode('utf-8', errors='ignore').decode('utf-8')}")
+    except UnicodeEncodeError:
+        encoding = locale.getpreferredencoding()
+        print(f"{string.encode(encoding, errors='ignore').decode(encoding)}")
+    except Exception as e:
+        print(f"An error occurred while printing to the console: {e}")
+
+
 def main():
     token = get_token()
     playlists = get_playlists(user_id, token)
@@ -213,8 +222,10 @@ def main():
     # print(playlist_id)
     
     playlist_name = str(playlists[0][0])
-    print("Chosen playlist: " + playlist_name)
     sanitized_playlist_name = sanitize_filename(playlist_name)
+    
+    chosen_playlist_print_string = f"Chosen playlist: {playlist_name}"
+    console_print(chosen_playlist_print_string)
     
     # Create a directory with the name of the playlist in the downloads directory, if it doesn't already exist
     if not os.path.exists(os.path.join(downloads_dir, sanitized_playlist_name)):
@@ -251,6 +262,6 @@ def main():
     else:
         print("Tracks not found:\n")
         for track in tracks_not_found:
-            print(track)
+            console_print(track)
 
 main()
