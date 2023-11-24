@@ -18,6 +18,7 @@ client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 user_id = os.getenv("USER_ID")
 downloads_dir = os.getenv("DOWNLOADS_DIR")
+keep_mp4_without_ffmpeg = os.getenv("KEEP_MP4_WITHOUT_FFMPEG")
 
 def get_existing_tracks(playlist_name):
     existing_tracks = []
@@ -159,10 +160,14 @@ def download_song(video_url, song_title, playlist_name):
     # print("MP3 FILE:" + mp3_file)
     
     print("Converting to mp3...")
+
+    conversion_successful = False
     
     try:
         subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file], 
                        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
+        conversion_successful = True
+        print("Download complete.")
     except KeyboardInterrupt:
         print("Conversion was interrupted by the user.")
         if os.path.exists(mp3_file):
@@ -172,10 +177,13 @@ def download_song(video_url, song_title, playlist_name):
         if os.path.exists(mp3_file):
             os.remove(mp3_file)
     finally:
-        if os.path.exists(output_file):
+        if keep_mp4_without_ffmpeg == "0" and os.path.exists(output_file):
             os.remove(output_file)
-    
-    print("Download complete.")
+        else:
+            if conversion_successful and os.path.exists(output_file):
+                os.remove(output_file)
+            else:
+                print("Failed to convert, keeping mp4 file.")
 
 
 def sanitize_filename(filename):
