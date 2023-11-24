@@ -1,4 +1,4 @@
 # Spotify playlist downloader (CLI)
 
 ## Dependencies
-### - ffmpeg
+### - ffmpeg (Optional, but HIGHLY recommended)
