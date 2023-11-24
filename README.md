@@ -1,2 +1,2 @@
-# download-playlist
- 
+# Spotify playlist downloader CLI tool
+
