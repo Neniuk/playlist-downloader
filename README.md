@@ -1,2 +1,2 @@
-# Spotify playlist downloader CLI tool
+# Spotify playlist downloader (CLI)
 
