@@ -5,3 +5,5 @@
 
 Downloads/*
 !Downloads/.gitkeep
+
+config.json
