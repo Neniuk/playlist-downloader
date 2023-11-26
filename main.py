@@ -11,6 +11,8 @@ import subprocess
 import time
 import http.client
 import locale
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC, error
 
 load_dotenv()
 
@@ -90,6 +92,18 @@ def get_tracks(playlist_id, token, existing_tracks, playlist_name):
         track_name = track["track"]["name"]
         artist = track["track"]["artists"][0]["name"]
         
+        album = track["track"]["album"]
+        images = album["images"]
+        if images:
+            image_url = images[0]["url"]
+            image_response = None
+            
+            try:
+                image_response = get(image_url)
+                image_response.raise_for_status()
+            except Exception as e:
+                print(f"An error occurred while downloading the album art: {e}")
+
         search_string = track_name + " - " + artist
         sanitized_track_name = sanitize_filename(search_string)
         
@@ -111,7 +125,7 @@ def get_tracks(playlist_id, token, existing_tracks, playlist_name):
             continue
         
         if video_url is not None:
-            download_song(video_url, sanitized_track_name, playlist_name)
+            download_song(video_url, sanitized_track_name, playlist_name, image_response.content)
             download_complete = True
             number_of_downloads += 1
             
@@ -129,11 +143,11 @@ def get_video_url(song_name):
     return video_url
 
 
-def download_song(video_url, song_title, playlist_name):
+def download_song(video_url, song_title, playlist_name, cover_art):
     yt = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
     audio = yt.streams.filter(only_audio=True).first()
     
-    download_print_string = f"Downloading: {yt.title}"
+    download_print_string = f"\nDownloading: {yt.title}"
     console_print(download_print_string)
     
     song_title = sanitize_filename(song_title)
@@ -167,7 +181,6 @@ def download_song(video_url, song_title, playlist_name):
         subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file], 
                        stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
         conversion_successful = True
-        print("Download complete.")
     except KeyboardInterrupt:
         print("Conversion was interrupted by the user.")
         if os.path.exists(mp3_file):
@@ -177,6 +190,22 @@ def download_song(video_url, song_title, playlist_name):
         if os.path.exists(mp3_file):
             os.remove(mp3_file)
     finally:
+        if conversion_successful and os.path.exists(mp3_file) and (cover_art is not None):
+            print("Adding cover art...")
+            
+            audio = MP3(mp3_file, ID3=ID3)
+            audio.tags.add(
+                APIC(
+                    encoding=3,
+                    mime='image/jpeg',
+                    type=3,
+                    desc=u'Cover',
+                    data=cover_art
+                )
+            )
+            
+            audio.save()
+        
         if keep_mp4_without_ffmpeg == "0" and os.path.exists(output_file):
             os.remove(output_file)
         else:
@@ -184,6 +213,9 @@ def download_song(video_url, song_title, playlist_name):
                 os.remove(output_file)
             else:
                 print("Failed to convert, keeping mp4 file.")
+                
+        if conversion_successful:
+            print("Download complete.")
 
 
 def sanitize_filename(filename):
@@ -255,7 +287,7 @@ def main():
     print(f"Number of existing tracks: {len(existing_tracks)}")
     print()
     
-    print("Downloading songs...\n")
+    print("Downloading songs...")
     tracks_not_found, number_of_downloads, number_of_skips = get_tracks(playlist_id, token, existing_tracks, sanitized_playlist_name)
     
     print("\nAll downloads complete.")
