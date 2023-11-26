@@ -4,7 +4,7 @@
 
 -   [ffmpeg](https://ffmpeg.org/) (Optional, but HIGHLY recommended)
 
-	-   Used to convert the downloaded .mp4 files to .mp3
+    -   Used to convert the downloaded .mp4 files to .mp3
 
 ## Quick Start
 
