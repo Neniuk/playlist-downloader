@@ -1,4 +1,4 @@
-# Spotify Playlist Downloader (CLI)
+# Playlist Downloader (CLI)
 
 ## Dependencies
 
