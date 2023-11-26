@@ -2,7 +2,7 @@
 
 ## Dependencies
 
--   [ffmpeg](https://ffmpeg.org/) (Optional, but HIGHLY recommended)
+-   [ffmpeg](https://ffmpeg.org/) (Optional, but 🔴HIGHLY🔴 recommended)
 
     -   Used to convert the downloaded .mp4 files to .mp3
 
