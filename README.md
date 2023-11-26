@@ -1,5 +1,7 @@
 # Playlist Downloader (CLI)
 
+## ⚠️UNDER DEVELOPMENT⚠️
+
 ## Dependencies
 
 -   [ffmpeg](https://ffmpeg.org/) (Optional, but 🔴HIGHLY🔴 recommended)
