@@ -17,24 +17,25 @@ def main():
         
     print()
     
-    # playlist_index = input("\nPlease enter the index of the playlist you wish to download: ")
+    playlist_index = input("Please enter the index of the playlist you wish to download: ")
+    if playlist_index.isdigit():
+        playlist_int_index = int(playlist_index)
+        if playlist_int_index < 0 or playlist_int_index >= len(playlists):
+            print("Invalid index.")
+            return
+    else:
+        print("Invalid index.")
+        return
     
-    # if playlist_index.isdigit() and (int_index >= 0) and (int_index < playlists.len()):
-    #     int_index = int(playlist_index)
-    #     songs = get_songs(playlists[int_index][1])
-    # else:
-    #     print("Invalid index.")
-    
-    playlist_id = str(playlists[0][1])
+    playlist_id = str(playlists[playlist_int_index][1])
     # print(playlist_id)
     
-    playlist_name = str(playlists[0][0])
+    playlist_name = str(playlists[playlist_int_index][0])
     sanitized_playlist_name = utils.sanitize_filename(playlist_name)
     
     chosen_playlist_string = f"Chosen playlist: {playlist_name}"
     utils.console_print(chosen_playlist_string)
-    
-    # Create a directory with the name of the playlist in the downloads directory, if it doesn't already exist
+
     utils.create_playlist_directory(sanitized_playlist_name)
     
     existing_tracks = utils.get_existing_tracks(sanitized_playlist_name)
