@@ -8,13 +8,13 @@ class Utils:
     def __init__(self):
         self.downloads_dir = os.getenv("DOWNLOADS_DIR")
 
-
-    def random_string(self, size):        
+    @staticmethod
+    def random_string(size):        
         letters = string.ascii_lowercase+string.ascii_uppercase+string.digits            
         return ''.join(secrets.choice(letters) for i in range(size))
 
-
-    def sanitize_filename(self, filename):
+    @staticmethod
+    def sanitize_filename(filename):
         # Remove extra whitespace
         filename = " ".join(filename.split())
         
@@ -23,8 +23,8 @@ class Utils:
         
         return filename
 
-
-    def console_print(self, string):
+    @staticmethod
+    def console_print(string):
         try:
             print(f"{string.encode('utf-8', errors='ignore').decode('utf-8')}")
         except UnicodeEncodeError:

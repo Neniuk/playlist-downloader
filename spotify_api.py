@@ -82,14 +82,34 @@ class SpotifyAPI:
 
     def extract_track_details(self, track_response):
         track_details = []
+        
         for track in track_response:
-            track_name = track["track"]["name"]
-            artist = track["track"]["artists"][0]["name"]
+            metadata = {
+                "search_string": "",
+                "title": "",
+                "artist": "",
+                "album": "",
+                "cover_art_url": "",
+                "cover_art": None
+            }
+            
+            metadata["title"] = track["track"]["name"]
+            metadata["artist"] = track["track"]["artists"][0]["name"]
+            
+            metadata["search_string"] = metadata["title"] + " - " + metadata["artist"]
+            metadata["title"] = Utils.sanitize_filename(metadata["search_string"])
+            
             album = track["track"]["album"]
+            
+            album_name = album["name"]
             images = album["images"]
+            
+            metadata["album"] = album_name
+            
             if images:
-                image_url = images[0]["url"]
-                track_details.append((track_name, artist, image_url))
+                metadata["cover_art_url"] = images[0]["url"]
+                track_details.append(metadata)
+        
         return track_details
 
 
@@ -113,36 +133,38 @@ class SpotifyAPI:
         number_of_downloads = 0
         number_of_skips = 0
         
-        for track_name, artist, image_url in track_details:
-            search_string = track_name + " - " + artist
-            sanitized_track_name = Utils.sanitize_filename(search_string)
-
-            if sanitized_track_name in existing_tracks:
+        download_complete = False
+        for metadata in track_details:
+            if metadata["title"] in existing_tracks:
                 number_of_skips += 1
                 
                 if download_complete:
                     print()
                     download_complete = False
                 
-                skip_string = f"Skipping \"{search_string}\" as it already exists."
+                skip_string = f"Skipping \"{metadata['search_string']}\" as it already exists."
                 Utils.console_print(skip_string)
                 continue
 
-            image_response = self.download_track_image(image_url)
+            image_response = self.download_track_image(metadata["cover_art_url"])
+            metadata["cover_art"] = image_response.content
+            
             if image_response is None:
-                image_download_error_string = f"An error occurred while downloading the album art for \"{search_string}\"."
+                image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
                 Utils.console_print(image_download_error_string)
                 continue
             
             youtube_api = YoutubeAPI()
 
-            video_url = youtube_api.get_video_url(search_string)
+            video_url = youtube_api.get_video_url(metadata["search_string"])
             if video_url is None:
-                tracks_not_found.append(search_string)
+                tracks_not_found.append(metadata["search_string"])
                 continue
-
-            youtube_api.download_song(video_url, sanitized_track_name, playlist_name, image_response.content)
-            number_of_downloads += 1
+            
+            if video_url is not None:
+                youtube_api.download_song(video_url, playlist_name, metadata)
+                download_complete = True
+                number_of_downloads += 1
 
         return tracks_not_found, number_of_downloads, number_of_skips
 

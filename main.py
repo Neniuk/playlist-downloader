@@ -1,11 +1,13 @@
-from youtube_api import YoutubeAPI
 from spotify_api import SpotifyAPI
 
 from utils import Utils
 
 def main():
-    token = SpotifyAPI.get_token()
-    playlists = SpotifyAPI.get_playlists(token)
+    spotify_api = SpotifyAPI()
+    utils = Utils()
+    
+    token = spotify_api.get_token()
+    playlists = spotify_api.get_playlists(token)
     
     print("\nPlaylists:\n")
     i = 0
@@ -27,24 +29,24 @@ def main():
     # print(playlist_id)
     
     playlist_name = str(playlists[0][0])
-    sanitized_playlist_name = Utils.sanitize_filename(playlist_name)
+    sanitized_playlist_name = utils.sanitize_filename(playlist_name)
     
     chosen_playlist_string = f"Chosen playlist: {playlist_name}"
-    Utils.console_print(chosen_playlist_string)
+    utils.console_print(chosen_playlist_string)
     
     # Create a directory with the name of the playlist in the downloads directory, if it doesn't already exist
-    Utils.create_playlist_directory(sanitized_playlist_name)
+    utils.create_playlist_directory(sanitized_playlist_name)
     
-    existing_tracks = Utils.get_existing_tracks(sanitized_playlist_name)
+    existing_tracks = utils.get_existing_tracks(sanitized_playlist_name)
     # print("Existing tracks: ")
     # for track in existing_tracks:
-    #     Utils.console_print(track)
+    #     utils.console_print(track)
     
     print(f"Number of existing tracks: {len(existing_tracks)}")
     print()
     
     print("Downloading songs...")
-    tracks_not_found, number_of_downloads, number_of_skips = SpotifyAPI.get_tracks(playlist_id, token, existing_tracks, sanitized_playlist_name)
+    tracks_not_found, number_of_downloads, number_of_skips = spotify_api.get_tracks(playlist_id, token, existing_tracks, sanitized_playlist_name)
     
     print("\nAll downloads complete.")
     
@@ -58,6 +60,8 @@ def main():
     else:
         print("Tracks not found:\n")
         for track in tracks_not_found:
-            Utils.console_print(track)
+            utils.console_print(track)
+
 
 main()
+

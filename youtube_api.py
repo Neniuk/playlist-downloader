@@ -25,7 +25,8 @@ class YoutubeAPI:
         video_url = result["result"][0]["link"]
         
         return video_url
-    
+
+
     def get_audio_stream(self, video_url, song_title, playlist_name):
         output_file = None
         mp3_file = None
@@ -59,43 +60,45 @@ class YoutubeAPI:
         # print("MP3 FILE:" + mp3_file)
         
         return output_file, mp3_file
-    
-    
-    def add_metadata(self, mp3_file, song_title, artist, album, cover_art):
+
+
+    def add_metadata(self, mp3_file, metadata):
         audio = MP3(mp3_file, ID3=ID3)
-        audio.tags.add(
-            APIC(
-                encoding=3,
-                mime='image/jpeg',
-                type=3,
-                desc=u'Cover',
-                data=cover_art
+        
+        if (metadata["cover_art"] is not None):
+            audio.tags.add(
+                APIC(
+                    encoding=3,
+                    mime='image/jpeg',
+                    type=3,
+                    desc=u'Cover',
+                    data=metadata["cover_art"]
+                )
             )
-        )
         
         audio.tags.add(
             TIT2(
                 encoding=3,
-                text=song_title
+                text=metadata["title"]
             )
         )
         
         audio.tags.add(
             TPE1(
                 encoding=3,
-                text=artist
+                text=metadata["artist"]
             )
         )
         
         audio.tags.add(
             TALB(
                 encoding=3,
-                text=album
+                text=metadata["album"]
             )
         )
         
         audio.save()
-        
+
 
     def cleanup_mp4(self, output_file, conversion_successful):
         if self.keep_mp4_without_ffmpeg == "0" and os.path.exists(output_file):
@@ -105,8 +108,8 @@ class YoutubeAPI:
                 os.remove(output_file)
             else:
                 print("Failed to convert, keeping mp4 file.")
-    
-    
+
+
     def convert_to_mp3(self, output_file, mp3_file, metadata):
         print("Converting to mp3...")
         conversion_successful = False
@@ -124,9 +127,9 @@ class YoutubeAPI:
             if os.path.exists(mp3_file):
                 os.remove(mp3_file)
         finally:
-            if conversion_successful and os.path.exists(mp3_file) and (metadata.cover_art is not None):
+            if conversion_successful and os.path.exists(mp3_file):
                 print("Adding track metadata...")
-                self.add_metadata(mp3_file, metadata.song_title, metadata.artist, metadata.album, metadata.cover_art)
+                self.add_metadata(mp3_file, metadata)
             
             self.cleanup_mp4(output_file, conversion_successful)
             
@@ -135,7 +138,7 @@ class YoutubeAPI:
 
 
     def download_song(self, video_url, playlist_name, metadata):
-        output_file, mp3_file = self.get_audio_stream(video_url, metadata.song_title, playlist_name)
+        output_file, mp3_file = self.get_audio_stream(video_url, metadata["title"], playlist_name)
         
         if output_file is None:
             return
