@@ -14,9 +14,7 @@
 
 #### Downloading a playlist
 
-In order to download a playlist, you must first add your Spotify API credentials and your Spotify username to the "config.json" file. You can get your Spotify API credentials [here](https://developer.spotify.com/dashboard/applications). Your Spotify username is the name that appears at the top of the Spotify app. By default playlists are downloaded to a "Downloads" folder in the same directory as the main program. You can change this by changing the "download_path" variable in the "config.json" file. Once you have added your credentials and username, you can run the following command to download a playlist:
-
-`python3 main.py`
+In order to download a playlist, you must first add your Spotify API credentials and your Spotify username to the ".env" file. You can get your Spotify API credentials [here](https://developer.spotify.com/dashboard/applications). Your Spotify username is the name that appears at the top of the Spotify app. By default playlists are downloaded to a "Downloads" folder in the same directory as the main program. You can change this by changing the "download_path" variable in the ".env" file. Once you have added your credentials and username you can run the executable "playlist-downloader.exe" to start the program.
 
 The program will then list all of the playlists associated with your account. You can then enter the number of the playlist you want to download. The program will then download the playlist to the "download_path" specified in the "config.json" file. The playlist will be located in a folder of the same name as the playlist.
 
