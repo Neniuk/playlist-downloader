@@ -7,3 +7,5 @@ Downloads/*
 !Downloads/.gitkeep
 
 config.json
+
+__pycache__/
