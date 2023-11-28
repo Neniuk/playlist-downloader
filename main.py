@@ -59,7 +59,6 @@ def get_auth_header(token):
 
 
 def get_playlists(user_id, token):
-    playlist_id = []
     url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
     headers = get_auth_header(token)
     response = get(url, headers=headers)
