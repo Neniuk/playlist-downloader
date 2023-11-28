@@ -71,11 +71,14 @@ class SpotifyAPI:
 
 
     def get_track_response(self, playlist_id, token):
+        tracks = []
         url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
         headers = self.get_auth_header(token)
-        response = get(url, headers=headers)
-        response_json = response.json()
-        tracks = response_json["items"]
+        while url:
+            response = get(url, headers=headers)
+            response_json = response.json()
+            tracks.extend(response_json["items"])
+            url = response_json["next"]
         
         return tracks
 
