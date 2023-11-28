@@ -9,3 +9,4 @@ Downloads/*
 config.json
 
 __pycache__/
+build/
