@@ -31,7 +31,7 @@ class YoutubeAPI:
         output_file = None
         mp3_file = None
         
-        yt = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
+        yt = YouTube(video_url)
         audio = yt.streams.filter(only_audio=True).first()
         
         download_print_string = f"\nDownloading: {yt.title}"

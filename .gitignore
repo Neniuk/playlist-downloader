@@ -1,5 +1,7 @@
 
 .env
+!dist/.env
+
 *.mp4
 *.mp3
 
