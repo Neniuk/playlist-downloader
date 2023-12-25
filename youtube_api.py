@@ -51,9 +51,11 @@ class YoutubeAPI:
         # Retry up to 3 times
         for _ in range(3):
             try:
-                output_file = audio.download(output_path=os.path.join(
-                    self.downloads_dir, playlist_name), filename=song_title + ".mp4")
-                # print("OUTPUT FILE:" + output_file)
+                output_path_path = os.path.join(
+                    self.downloads_dir, playlist_name)
+                output_file = audio.download(
+                    output_path=output_path_path, filename=song_title + ".mp4")
+                print("OUTPUT FILE:" + output_file)
                 break
             except http.client.IncompleteRead:
                 print("IncompleteRead error, retrying download...")
@@ -67,7 +69,7 @@ class YoutubeAPI:
             return None, None
 
         mp3_file = os.path.splitext(output_file)[0] + '.mp3'
-        # print("MP3 FILE:" + mp3_file)
+        print("MP3 FILE:" + mp3_file)
 
         return output_file, mp3_file
 
