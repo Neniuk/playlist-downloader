@@ -126,6 +126,7 @@ class YoutubeAPI:
         try:
             subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file],
                            stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
+            # print("Conversion successful.")
             conversion_successful = True
         except KeyboardInterrupt:
             print("Conversion was interrupted by the user.")
@@ -140,7 +141,8 @@ class YoutubeAPI:
                 print("Adding track metadata...")
                 self.add_metadata(mp3_file, metadata)
 
-            self.cleanup_mp4(output_file, conversion_successful)
+            if (self.keep_mp4_without_ffmpeg == "0" and os.path.exists(output_file)):
+                self.cleanup_mp4(output_file, conversion_successful)
 
             if conversion_successful:
                 print("Download complete.")
