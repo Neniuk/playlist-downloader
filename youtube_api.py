@@ -124,10 +124,13 @@ class YoutubeAPI:
         conversion_successful = False
 
         try:
-            subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
-            # print("Conversion successful.")
-            conversion_successful = True
+            process = subprocess.run(['ffmpeg', '-i', output_file, '-vn', '-ab', '128k', '-ar', '44100', '-y', mp3_file],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
+            if process.returncode != 0:
+                print(
+                    f"ffmpeg command failed with error: {process.stderr.decode()}")
+            else:
+                conversion_successful = True
         except KeyboardInterrupt:
             print("Conversion was interrupted by the user.")
             if os.path.exists(mp3_file):
