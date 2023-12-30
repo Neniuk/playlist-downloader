@@ -6,6 +6,7 @@ from youtubesearchpython import VideosSearch
 from pytube import YouTube
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, TALB
+from pytube.exceptions import AgeRestrictedError
 
 from utils import Utils
 
@@ -151,10 +152,13 @@ class YoutubeAPI:
                 print("Download complete.")
 
     def download_song(self, video_url, playlist_name, metadata):
-        output_file, mp3_file = self.get_audio_stream(
-            video_url, metadata["title"], playlist_name)
+        try:
+            output_file, mp3_file = self.get_audio_stream(
+                video_url, metadata["title"], playlist_name)
 
-        if output_file is None:
-            return
+            if output_file is None:
+                return
 
-        self.convert_to_mp3(output_file, mp3_file, metadata)
+            self.convert_to_mp3(output_file, mp3_file, metadata)
+        except AgeRestrictedError:
+            print(f"Skipping age-restricted video: {video_url}")
