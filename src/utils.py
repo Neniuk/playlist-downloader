@@ -3,6 +3,31 @@ import secrets
 import re
 import locale
 import os
+import logging
+
+
+class Logger:
+    def __init__(self):
+        # Set up the logger
+        self.log = logging.getLogger()
+        # Set to INFO to reduce verbosity
+        self.log.setLevel(logging.ERROR)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s'))
+        self.log.addHandler(handler)
+
+    def debug(self, msg):
+        self.log.debug(msg)
+
+    def info(self, msg):
+        self.log.info(msg)
+
+    def warning(self, msg):
+        self.log.warning(msg)
+
+    def error(self, msg):
+        self.log.error(msg)
 
 
 class Utils:
@@ -11,17 +36,14 @@ class Utils:
 
     @staticmethod
     def random_string(size):
-        letters = string.ascii_lowercase+string.ascii_uppercase+string.digits
+        letters = string.ascii_letters + string.digits
         return ''.join(secrets.choice(letters) for _ in range(size))
 
     @staticmethod
     def sanitize_filename(filename):
-        # Remove extra whitespace
+        # Remove extra whitespace & invalid characters
         filename = " ".join(filename.split())
-
-        # Remove invalid characters
         filename = re.sub(r'[\\/*?:"<>|]', "", filename)
-
         return filename
 
     @staticmethod
@@ -35,17 +57,13 @@ class Utils:
             print(f"An error occurred while printing to the console: {e}")
 
     def create_playlist_directory(self, sanitized_playlist_name):
-        if not os.path.exists(os.path.join(self.downloads_dir, sanitized_playlist_name)):
-            os.makedirs(os.path.join(
-                self.downloads_dir, sanitized_playlist_name))
+        path = os.path.join(self.downloads_dir, sanitized_playlist_name)
+        if not os.path.exists(path):
+            os.makedirs(path)
             print("Playlist directory created.\n")
         else:
             print("Playlist directory already exists.\n")
 
     def get_existing_tracks(self, playlist_name):
-        existing_tracks = []
-        for filename in os.listdir("./" + self.downloads_dir + "/" + playlist_name):
-            if filename.endswith(".mp3"):
-                existing_tracks.append(filename[:-4])
-
-        return existing_tracks
+        path = os.path.join(self.downloads_dir, playlist_name)
+        return [filename[:-4] for filename in os.listdir(path) if filename.endswith(".mp3")]

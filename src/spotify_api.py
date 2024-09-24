@@ -20,8 +20,9 @@ class SpotifyAuthHandler(BaseHTTPRequestHandler):
             code = params.get('code')
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(
-                b"Authorization successful. You can close this window.")
+            with open('authorization_success.html', 'r') as file:
+                html_content = file.read()
+            self.wfile.write(html_content.encode('utf-8'))
             self.server.auth_code = code
 
 
@@ -36,16 +37,16 @@ class SpotifyAPI:
         self.auth_code = None
 
     def get_user_auth(self):
-        auth_url: str = "https://accounts.spotify.com/authorize"
-        state: str = Utils.random_string(16)
-        params: dict[str] = {
+        auth_url = "https://accounts.spotify.com/authorize"
+        state = Utils.random_string(16)
+        params = {
             "response_type": "code",
             "client_id": self.client_id,
             "scope": "playlist-read-private",
             "redirect_uri": self.redirect_uri,
             "state": state,
         }
-        url: str = f"{auth_url}?{urlencode(params)}"
+        url = f"{auth_url}?{urlencode(params)}"
         print(
             f"Please open the following URL in your browser to authorize the application:\n{url}")
 
@@ -93,8 +94,6 @@ class SpotifyAPI:
             response = get(url, headers=headers)
             response_json = response.json()
 
-            print(response_json)
-
             # if response code not 200, print error message
             if response.status_code != 200:
                 print(
@@ -110,7 +109,6 @@ class SpotifyAPI:
         playlists_name_id = []
 
         for playlist in playlists:
-            # print(playlist["name"], playlist["id"])
             name_id = (playlist["name"], playlist["id"])
             playlists_name_id.append(name_id)
 
@@ -192,57 +190,88 @@ class SpotifyAPI:
         total_download_time = 0
 
         for metadata in track_details:
-            if metadata["title"] in existing_tracks:
+            if self.should_skip_track(metadata, existing_tracks):
                 number_of_skips += 1
-
-                if download_complete:
-                    print()
-                    download_complete = False
-
-                skip_string = f"Skipping \"{metadata['search_string']}\" as it already exists."
-                Utils.console_print(skip_string)
+                download_complete = self.handle_skip(
+                    download_complete, metadata)
                 continue
 
             image_response = self.download_track_image(
                 metadata["cover_art_url"])
-            metadata["cover_art"] = image_response.content
-
-            if image_response is None:
-                image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
-                Utils.console_print(image_download_error_string)
+            if not self.handle_image_response(image_response, metadata):
                 continue
 
             youtube_api = YoutubeAPI()
-
             video_url, video_title = youtube_api.get_video_url(
                 metadata["search_string"])
-            if video_url is None:
-                tracks_not_found.append(metadata["search_string"])
+            if not self.handle_video_url(video_url, metadata, tracks_not_found):
                 continue
 
-            if video_url is not None:
-                if video_title is None:
-                    video_title = ""
-
-                start_time = time.time()
-                youtube_api.download_song_wrapper(
-                    video_title, video_url, playlist_name, metadata)
-                end_time = time.time()
-
-                download_time = end_time - start_time
-                total_download_time += download_time
-
-                number_of_downloads += 1
-                if number_of_downloads > 0:
-                    average_download_time = total_download_time / number_of_downloads
-                    estimated_time_remaining = average_download_time * \
-                        (number_of_tracks - number_of_downloads)
-                    minutes, seconds = divmod(estimated_time_remaining, 60)
-
-                    sys.stdout.write(
-                        f"Downloaded [{number_of_downloads}/{number_of_tracks}] tracks ({number_of_downloads/number_of_tracks*100:.2f}%) - Estimated total time remaining: {int(minutes)}m {int(seconds)}s\r")
-                    sys.stdout.flush()
+            number_of_downloads, total_download_time = self.download_track(
+                youtube_api, video_title, video_url, playlist_name, metadata, number_of_downloads, total_download_time, number_of_tracks)
 
             download_complete = True
 
         return tracks_not_found, number_of_downloads, number_of_skips
+
+    def should_skip_track(self, metadata, existing_tracks):
+        return metadata["title"] in existing_tracks
+
+    def handle_skip(self, download_complete, metadata):
+        if download_complete:
+            print()
+            download_complete = False
+
+        skip_string = f"Skipping \"{metadata['search_string']}\" as it already exists."
+        Utils.console_print(skip_string)
+        return download_complete
+
+    def handle_image_response(self, image_response, metadata):
+        if image_response is None:
+            image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+            Utils.console_print(image_download_error_string)
+            return False
+        metadata["cover_art"] = image_response.content
+        return True
+
+    def handle_video_url(self, video_url, metadata, tracks_not_found):
+        if video_url is None:
+            tracks_not_found.append(metadata["search_string"])
+            return False
+        return True
+
+    def download_track(self, youtube_api, video_title, video_url, playlist_name, metadata, number_of_downloads, total_download_time, number_of_tracks):
+        if video_title is None:
+            video_title = ""
+
+        start_time = time.time()
+        youtube_api.download_song_wrapper(
+            video_title, video_url, playlist_name, metadata)
+        end_time = time.time()
+
+        download_time = end_time - start_time
+        total_download_time += download_time
+
+        number_of_downloads += 1
+        self.log_download_progress(
+            number_of_downloads, number_of_tracks, total_download_time)
+
+        return number_of_downloads, total_download_time
+
+    def log_skip(self, metadata):
+        skip_string = f"Skipping \"{metadata['search_string']}\" as it already exists."
+        Utils.console_print(skip_string)
+
+    def log_image_download_error(self, metadata):
+        image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+        Utils.console_print(image_download_error_string)
+
+    def log_download_progress(self, number_of_downloads, number_of_tracks, total_download_time):
+        average_download_time = total_download_time / number_of_downloads
+        estimated_time_remaining = average_download_time * \
+            (number_of_tracks - number_of_downloads)
+        minutes, seconds = divmod(estimated_time_remaining, 60)
+
+        sys.stdout.write(
+            f"Downloaded [{number_of_downloads}/{number_of_tracks}] tracks ({number_of_downloads/number_of_tracks*100:.2f}%) - Estimated total time remaining: {int(minutes)}m {int(seconds)}s\r")
+        sys.stdout.flush()

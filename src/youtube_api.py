@@ -2,34 +2,10 @@ import os
 import time
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
-import logging
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, TALB
 
-from utils import Utils
-
-
-class YoutubeDLLogger:
-    def __init__(self):
-        # Set up the logger
-        self.logger = logging.getLogger('youtube_dl')
-        self.logger.setLevel(logging.INFO)  # Set to INFO to reduce verbosity
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(handler)
-
-    def debug(self, msg):
-        self.logger.debug(msg)
-
-    def info(self, msg):
-        self.logger.info(msg)
-
-    def warning(self, msg):
-        self.logger.warning(msg)
-
-    def error(self, msg):
-        self.logger.error(msg)
+from utils import Utils, Logger
 
 
 class YoutubeAPI:
@@ -42,7 +18,7 @@ class YoutubeAPI:
         result = videos_search.result()
 
         if result["result"] == []:
-            return None
+            return None, None
 
         video_url = result["result"][0]["link"]
         video_title = result["result"][0]["title"]
@@ -101,7 +77,7 @@ class YoutubeAPI:
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'logger': YoutubeDLLogger(),
+            'logger': Logger(),
             "quiet": True,
         }
 
@@ -129,8 +105,6 @@ class YoutubeAPI:
         return mp3_file
 
     def download_song_wrapper(self, _video_title, video_url, playlist_name, metadata):
-        # download_string = f"Downloading: {_video_title} ( {video_url} )"
-        # Utils.console_print(download_string)
         try:
             mp3_file = self.download_song(
                 video_url, metadata["title"], playlist_name)
