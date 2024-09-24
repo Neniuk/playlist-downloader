@@ -1,6 +1,7 @@
 # Environment variables
 .env
 !dist/.env
+dist
 
 # Music files
 *.mp4
