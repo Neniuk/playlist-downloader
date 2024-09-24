@@ -2,6 +2,8 @@ import dotenv
 import os
 import base64
 import json
+import sys
+import time
 from requests import get, post
 from urllib.parse import urlencode
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -184,8 +186,11 @@ class SpotifyAPI:
         tracks_not_found = []
         number_of_downloads = 0
         number_of_skips = 0
+        number_of_tracks = len(track_details) - len(existing_tracks)
 
         download_complete = False
+        total_download_time = 0
+
         for metadata in track_details:
             if metadata["title"] in existing_tracks:
                 number_of_skips += 1
@@ -218,9 +223,26 @@ class SpotifyAPI:
             if video_url is not None:
                 if video_title is None:
                     video_title = ""
-                youtube_api.download_song(
+
+                start_time = time.time()
+                youtube_api.download_song_wrapper(
                     video_title, video_url, playlist_name, metadata)
-                download_complete = True
+                end_time = time.time()
+
+                download_time = end_time - start_time
+                total_download_time += download_time
+
                 number_of_downloads += 1
+                if number_of_downloads > 0:
+                    average_download_time = total_download_time / number_of_downloads
+                    estimated_time_remaining = average_download_time * \
+                        (number_of_tracks - number_of_downloads)
+                    minutes, seconds = divmod(estimated_time_remaining, 60)
+
+                    sys.stdout.write(
+                        f"Downloaded [{number_of_downloads}/{number_of_tracks}] tracks ({number_of_downloads/number_of_tracks*100:.2f}%) - Estimated total time remaining: {int(minutes)}m {int(seconds)}s\r")
+                    sys.stdout.flush()
+
+            download_complete = True
 
         return tracks_not_found, number_of_downloads, number_of_skips

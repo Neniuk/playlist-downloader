@@ -11,6 +11,9 @@ def main():
     token = spotify_api.get_token()
     playlists = spotify_api.get_playlists(token)
 
+    # Sort playlists by name
+    playlists.sort(key=lambda name: name[0].lower())
+
     print("\nPlaylists:\n")
     i = 0
     for playlist in playlists:
@@ -49,7 +52,7 @@ def main():
     print(f"Number of existing tracks: {len(existing_tracks)}")
     print()
 
-    print("Downloading songs...")
+    print("Downloading tracks...")
     tracks_not_found, number_of_downloads, number_of_skips = spotify_api.get_tracks(
         playlist_id, token, existing_tracks, sanitized_playlist_name)
 
