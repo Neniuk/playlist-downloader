@@ -1,5 +1,8 @@
 mutagen==1.47.0
 python-dotenv==1.0.0
-requests==2.31.0
+requests==2.32.3
 youtube-search-python==1.6.6
 yt-dlp==2024.8.6
+brotli==1.1.0
+pycryptodomex==3.20.0
+websockets==13.1
