@@ -7,9 +7,33 @@ from pytube import YouTube
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, TALB
 from pytube.exceptions import AgeRestrictedError
-import youtuble_dl
+from yt_dlp import YoutubeDL
+import logging
 
 from utils import Utils
+
+
+class YoutubeDLLogger:
+    def __init__(self):
+        # Set up the logger
+        self.logger = logging.getLogger('youtube_dl')
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
+
+    def debug(self, msg):
+        self.logger.debug(msg)
+
+    def info(self, msg):
+        self.logger.info(msg)
+
+    def warning(self, msg):
+        self.logger.warning(msg)
+
+    def error(self, msg):
+        self.logger.error(msg)
 
 
 class YoutubeAPI:
@@ -196,12 +220,16 @@ class YoutubeAPI:
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
+            'logger': YoutubeDLLogger(),
+            "verbose": True,
         }
 
         # Retry up to 3 times
         for _ in range(3):
             try:
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                with YoutubeDL(ydl_opts) as ydl:
+                    print("Downloading with youtube_dl...")
+                    print([video_url])
                     ydl.download([video_url])
                 output_file = output_template.replace('.%(ext)s', '.mp4')
                 mp3_file = output_template.replace('.%(ext)s', '.mp3')
