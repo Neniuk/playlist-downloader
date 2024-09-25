@@ -13,7 +13,7 @@ from youtube_api import YoutubeAPI
 
 
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_get(self):
         authorization_success_page = """
         <!DOCTYPE html>
         <html lang="en">
@@ -132,7 +132,8 @@ class SpotifyAPI:
 
         return token
 
-    def get_auth_header(self, token):
+    @staticmethod
+    def get_auth_header(token):
         headers = {
             "Authorization": "Bearer " + token
         }
@@ -159,7 +160,8 @@ class SpotifyAPI:
 
         return playlists
 
-    def extract_playlist_ids(self, playlists):
+    @staticmethod
+    def extract_playlist_ids(playlists):
         playlists_name_id = []
 
         for playlist in playlists:
@@ -186,21 +188,14 @@ class SpotifyAPI:
 
         return tracks
 
-    def extract_track_details(self, track_response):
+    @staticmethod
+    def extract_track_details(track_response):
         track_details = []
 
         for track in track_response:
-            metadata = {
-                "search_string": "",
-                "title": "",
-                "artist": "",
-                "album": "",
-                "cover_art_url": "",
-                "cover_art": None
-            }
-
-            metadata["title"] = track["track"]["name"]
-            metadata["artist"] = track["track"]["artists"][0]["name"]
+            metadata = {"search_string": "", "title": track["track"]["name"],
+                        "artist": track["track"]["artists"][0]["name"], "album": "", "cover_art_url": "",
+                        "cover_art": None}
 
             metadata["search_string"] = metadata["title"] + \
                 " - " + metadata["artist"]
@@ -220,7 +215,8 @@ class SpotifyAPI:
 
         return track_details
 
-    def download_track_image(self, image_url):
+    @staticmethod
+    def download_track_image(image_url):
         image_response = None
 
         try:
@@ -268,10 +264,12 @@ class SpotifyAPI:
 
         return tracks_not_found, number_of_downloads, number_of_skips
 
-    def should_skip_track(self, metadata, existing_tracks):
+    @staticmethod
+    def should_skip_track(metadata, existing_tracks):
         return metadata["title"] in existing_tracks
 
-    def handle_skip(self, download_complete, metadata):
+    @staticmethod
+    def handle_skip(download_complete, metadata):
         if download_complete:
             print()
             download_complete = False
@@ -280,7 +278,8 @@ class SpotifyAPI:
         Utils.console_print(skip_string)
         return download_complete
 
-    def handle_image_response(self, image_response, metadata):
+    @staticmethod
+    def handle_image_response(image_response, metadata):
         if image_response is None:
             image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
             Utils.console_print(image_download_error_string)
@@ -288,7 +287,8 @@ class SpotifyAPI:
         metadata["cover_art"] = image_response.content
         return True
 
-    def handle_video_url(self, video_url, metadata, tracks_not_found):
+    @staticmethod
+    def handle_video_url(video_url, metadata, tracks_not_found):
         if video_url is None:
             tracks_not_found.append(metadata["search_string"])
             return False
@@ -312,15 +312,18 @@ class SpotifyAPI:
 
         return number_of_downloads, total_download_time
 
-    def log_skip(self, metadata):
+    @staticmethod
+    def log_skip(metadata):
         skip_string = f"Skipping \"{metadata['search_string']}\" as it already exists."
         Utils.console_print(skip_string)
 
-    def log_image_download_error(self, metadata):
+    @staticmethod
+    def log_image_download_error(metadata):
         image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
         Utils.console_print(image_download_error_string)
 
-    def log_download_progress(self, number_of_downloads, number_of_tracks, total_download_time):
+    @staticmethod
+    def log_download_progress(number_of_downloads, number_of_tracks, total_download_time):
         average_download_time = total_download_time / number_of_downloads
         estimated_time_remaining = average_download_time * \
             (number_of_tracks - number_of_downloads)
