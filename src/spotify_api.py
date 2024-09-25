@@ -13,7 +13,7 @@ from youtube_api import YoutubeAPI
 
 
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
-    def do_get(self):
+    def do_GET(self):
         authorization_success_page = """
         <!DOCTYPE html>
         <html lang="en">
