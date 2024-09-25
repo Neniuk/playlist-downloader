@@ -309,7 +309,9 @@ class SpotifyAPI:
     @staticmethod
     def handle_image_response(image_response, metadata):
         if image_response is None:
-            image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+            image_download_error_string = (
+                f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+            )
             Utils.console_print(image_download_error_string)
             return False
         metadata["cover_art"] = image_response.content

@@ -17,11 +17,20 @@ class YoutubeAPI:
         videos_search = VideosSearch(song_name, limit=1)
         result = videos_search.result()
 
-        if not isinstance(result, dict) or "result" not in result or not isinstance(result["result"], list) or len(result["result"]) == 0:
+        if (
+            not isinstance(result, dict) or
+            "result" not in result or
+            not isinstance(result["result"], list) or
+            len(result["result"]) == 0
+        ):
             return None, None
 
         video_info = result["result"][0]
-        if not isinstance(video_info, dict) or "link" not in video_info or "title" not in video_info:
+        if (
+            not isinstance(video_info, dict) or
+            "link" not in video_info or
+            "title" not in video_info
+        ):
             return None, None
 
         video_url = result["result"][0]["link"]
