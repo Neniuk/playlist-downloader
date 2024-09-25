@@ -11,7 +11,6 @@ from utils import Utils, Logger
 class YoutubeAPI:
     def __init__(self):
         self.downloads_dir = os.getenv("DOWNLOADS_DIR")
-        self.keep_mp4_without_ffmpeg = os.getenv("KEEP_MP4_WITHOUT_FFMPEG")
 
     def get_video_url(self, song_name):
         videos_search = VideosSearch(song_name, limit=1)
