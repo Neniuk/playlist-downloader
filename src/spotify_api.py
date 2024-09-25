@@ -12,8 +12,14 @@ from utils import Utils
 from youtube_api import YoutubeAPI
 
 
+class CustomHTTPServer(HTTPServer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.auth_code = None
+
+
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
-    def do_get(self):
+    def do_GET(self):
         authorization_success_page = """
         <!DOCTYPE html>
         <html lang="en">
@@ -106,7 +112,7 @@ class SpotifyAPI:
 
         # Start a local server to handle the redirect
         server_address = ('', 8080)
-        httpd = HTTPServer(server_address, SpotifyAuthHandler)
+        httpd = CustomHTTPServer(server_address, SpotifyAuthHandler)
         httpd.handle_request()
 
         self.auth_code = httpd.auth_code
@@ -128,6 +134,11 @@ class SpotifyAPI:
         }
         result = post(url, headers=headers, data=data)
         result_json = json.loads(result.content)
+
+        if "access_token" not in result_json:
+            print("An error occurred while fetching the access token")
+            sys.exit(1)
+
         token = result_json["access_token"]
 
         return token
