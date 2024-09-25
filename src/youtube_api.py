@@ -12,11 +12,16 @@ class YoutubeAPI:
     def __init__(self):
         self.downloads_dir = os.getenv("DOWNLOADS_DIR")
 
-    def get_video_url(self, song_name):
+    @staticmethod
+    def get_video_url(song_name):
         videos_search = VideosSearch(song_name, limit=1)
         result = videos_search.result()
 
-        if result["result"] == []:
+        if not isinstance(result, dict) or "result" not in result or not isinstance(result["result"], list) or len(result["result"]) == 0:
+            return None, None
+
+        video_info = result["result"][0]
+        if not isinstance(video_info, dict) or "link" not in video_info or "title" not in video_info:
             return None, None
 
         video_url = result["result"][0]["link"]
@@ -24,7 +29,8 @@ class YoutubeAPI:
 
         return video_url, video_title
 
-    def add_metadata(self, mp3_file, metadata):
+    @staticmethod
+    def add_metadata(mp3_file, metadata):
         audio = MP3(mp3_file, ID3=ID3)
 
         if metadata["cover_art"] is not None:

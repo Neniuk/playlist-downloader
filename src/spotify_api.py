@@ -19,6 +19,8 @@ class CustomHTTPServer(HTTPServer):
 
 
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
+    # This method name does not follow PEP 8 naming conventions
+    # because it is required by the BaseHTTPRequestHandler class.
     def do_GET(self):
         authorization_success_page = """
         <!DOCTYPE html>
@@ -87,13 +89,20 @@ class SpotifyAPI:
                 "Please set the environment variables CLIENT_ID, CLIENT_SECRET and USER_ID.")
             sys.exit(1)
 
-        if self.client_id == "<Spotify API Client ID>" or self.client_secret == "<Spotify API Client Secret>" or self.user_id == "<Spotify User ID>":
+        if (
+            self.client_id == "<Spotify API Client ID>" or
+            self.client_secret == "<Spotify API Client Secret>" or
+            self.user_id == "<Spotify User ID>"
+        ):
             print(
                 "Please set the environment variables CLIENT_ID, CLIENT_SECRET and USER_ID to their respective values.")
             sys.exit(1)
 
         if not self.downloads_dir:
-            print("Please set the environment variable DOWNLOADS_DIR to the directory where you want to save the downloaded tracks.")
+            print(
+                "Please set the environment variable DOWNLOADS_DIR to the directory "
+                "where you want to save the downloaded tracks."
+            )
             sys.exit(1)
 
     def get_user_auth(self):
@@ -269,7 +278,15 @@ class SpotifyAPI:
                 continue
 
             number_of_downloads, total_download_time = self.download_track(
-                youtube_api, video_title, video_url, playlist_name, metadata, number_of_downloads, total_download_time, number_of_tracks)
+                youtube_api,
+                video_title,
+                video_url,
+                playlist_name,
+                metadata,
+                number_of_downloads,
+                total_download_time,
+                number_of_tracks
+            )
 
             download_complete = True
 
@@ -305,7 +322,17 @@ class SpotifyAPI:
             return False
         return True
 
-    def download_track(self, youtube_api, video_title, video_url, playlist_name, metadata, number_of_downloads, total_download_time, number_of_tracks):
+    def download_track(
+        self,
+        youtube_api,
+        video_title,
+        video_url,
+        playlist_name,
+        metadata,
+        number_of_downloads,
+        total_download_time,
+        number_of_tracks
+    ):
         if video_title is None:
             video_title = ""
 
@@ -330,7 +357,9 @@ class SpotifyAPI:
 
     @staticmethod
     def log_image_download_error(metadata):
-        image_download_error_string = f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+        image_download_error_string = (
+            f"An error occurred while downloading the album art for \"{metadata['search_string']}\"."
+        )
         Utils.console_print(image_download_error_string)
 
     @staticmethod
@@ -341,5 +370,8 @@ class SpotifyAPI:
         minutes, seconds = divmod(estimated_time_remaining, 60)
 
         sys.stdout.write(
-            f"Downloaded [{number_of_downloads}/{number_of_tracks}] tracks ({number_of_downloads/number_of_tracks*100:.2f}%) - Estimated total time remaining: {int(minutes)}m {int(seconds)}s\r")
+            f"Downloaded [{number_of_downloads}/{number_of_tracks}] tracks "
+            f"({number_of_downloads / number_of_tracks * 100:.2f}%) - "
+            f"Estimated total time remaining: {int(minutes)}m {int(seconds)}s\r"
+        )
         sys.stdout.flush()

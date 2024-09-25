@@ -47,12 +47,12 @@ class Utils:
         return filename
 
     @staticmethod
-    def console_print(string):
+    def console_print(message):
         try:
-            print(f"{string.encode('utf-8', errors='ignore').decode('utf-8')}")
+            print(f"{message.encode('utf-8', errors='ignore').decode('utf-8')}")
         except UnicodeEncodeError:
             encoding = locale.getpreferredencoding()
-            print(f"{string.encode(encoding, errors='ignore').decode(encoding)}")
+            print(f"{message.encode(encoding, errors='ignore').decode(encoding)}")
         except Exception as e:
             print(f"An error occurred while printing to the console: {e}")
 
