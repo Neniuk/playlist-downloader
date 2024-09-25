@@ -1,5 +1,6 @@
 import os
 import time
+
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 from mutagen.mp3 import MP3
@@ -48,7 +49,7 @@ class YoutubeAPI:
                     encoding=3,
                     mime='image/jpeg',
                     type=3,
-                    desc=u'Cover',
+                    desc='Cover',
                     data=metadata["cover_art"]
                 )
             )

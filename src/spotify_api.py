@@ -1,27 +1,59 @@
-import dotenv
-import os
-import base64
 import json
 import sys
 import time
-from requests import get, post
+import os
+import base64
 from urllib.parse import urlencode
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+import dotenv
+import requests
+from requests import Response, get, post
 
 from utils import Utils
 from youtube_api import YoutubeAPI
 
 
 class CustomHTTPServer(HTTPServer):
+    """
+    Custom HTTPServer class to store the authorization code
+
+    Args:
+        HTTPServer (_type_): _description_
+
+    Attributes:
+        auth_code : str
+            The authorization code returned by the Spotify authorization server
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.auth_code = None
+        self.auth_code: str | None = None
 
 
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
+    """
+    Handle the authorization response from Spotify.
+
+    Args:
+    -----
+        BaseHTTPRequestHandler (_type_): _description_
+
+    Methods:
+    --------
+        do_GET(): 
+            Handle GET requests
+    """
+
     # This method name does not follow PEP 8 naming conventions
     # because it is required by the BaseHTTPRequestHandler class.
-    def do_GET(self):
+    def do_GET(self) -> None:
+        """
+        Handle GET requests from the Spotify authorization server.
+
+        Returns:
+            None
+        """
         authorization_success_page = """
         <!DOCTYPE html>
         <html lang="en">
@@ -74,15 +106,82 @@ class SpotifyAuthHandler(BaseHTTPRequestHandler):
 
 
 class SpotifyAPI:
-    def __init__(self):
+    """
+    Class to interact with the Spotify API.
+
+    Attributes:
+    -----------
+    client_id : str | None
+        The Spotify API client ID
+    client_secret : str | None
+        The Spotify API client secret
+    user_id : str | None
+        The Spotify user ID
+    redirect_uri : str
+        The redirect URI for the Spotify authorization server
+    downloads_dir : str | None
+        The directory where downloaded tracks will be saved
+    auth_code : str | None
+        The authorization code returned by the Spotify authorization server
+
+    Methods:
+    --------
+    get_user_auth():
+        Get the authorization code from the Spotify authorization server.
+    get_token():
+        Get the access token from the Spotify API.
+    get_auth_header(token):
+        Build the authorization header for Spotify API requests.
+    get_playlist_response(token):
+        Fetch the user's playlists from the Spotify API.
+    extract_playlist_ids(playlists):
+        Extract the playlist name and ID from the playlist response.
+    get_playlists(token):
+        Fetch the user's playlists & extract the playlist name and ID.
+    get_track_response(playlist_id, token):
+        Fetch the tracks from a playlist in the Spotify API.
+    extract_track_details(track_response):
+        Extract the track metadata from the track response.
+    download_track_image(image_url):
+        Download the album art for a track.
+    get_tracks(playlist_id, token, existing_tracks, playlist_name):
+        Download the tracks from a playlist.
+    should_skip_track(metadata, existing_tracks):
+        Check if a track should be skipped.
+    handle_skip(download_complete, metadata):
+        Handle skipping a track.
+    handle_image_response(image_response, metadata):
+        Handle the response from downloading the album art.
+    handle_video_url(video_url, metadata, tracks_not_found):
+        Handle the video URL from the YouTube API.
+    download_track(
+        youtube_api,
+        video_title,
+        video_url,
+        playlist_name,
+        metadata,
+        number_of_downloads,
+        total_download_time,
+        number_of_tracks
+    ):
+        Download a track from YouTube.
+    log_skip(metadata):
+        Log that a track is being skipped.
+    log_image_download_error(metadata):
+        Log an error downloading the album art.
+    log_download_progress(number_of_downloads, number_of_tracks, total_download_time):
+        Log the download progress.
+    """
+
+    def __init__(self: object):
         dotenv.load_dotenv()
-        self.client_id = os.getenv("CLIENT_ID")
-        self.client_secret = os.getenv("CLIENT_SECRET")
-        self.user_id = os.getenv("USER_ID")
+        self.client_id: str | None = os.getenv("CLIENT_ID")
+        self.client_secret: str | None = os.getenv("CLIENT_SECRET")
+        self.user_id: str | None = os.getenv("USER_ID")
         # Redirect URI is defined in the Spotify Developer Dashboard
-        self.redirect_uri = "http://localhost:8080/callback"
-        self.downloads_dir = os.getenv("DOWNLOADS_DIR")
-        self.auth_code = None
+        self.redirect_uri: str = "http://localhost:8080/callback"
+        self.downloads_dir: str | None = os.getenv("DOWNLOADS_DIR")
+        self.auth_code: str | None = None
 
         if not self.client_id or not self.client_secret or not self.user_id:
             print(
@@ -105,7 +204,13 @@ class SpotifyAPI:
             )
             sys.exit(1)
 
-    def get_user_auth(self):
+    def get_user_auth(self: object) -> None:
+        """
+        Get the authorization code from the Spotify authorization server.
+
+            Returns:
+                    None
+        """
         auth_url = "https://accounts.spotify.com/authorize"
         state = Utils.random_string(16)
         params = {
@@ -126,7 +231,13 @@ class SpotifyAPI:
 
         self.auth_code = httpd.auth_code
 
-    def get_token(self):
+    def get_token(self: object) -> str:
+        """
+        Get the access token from the Spotify API.
+
+            Returns:
+                    token (str): The access token for the Spotify API
+        """
         auth_string = self.client_id + ":" + self.client_secret
         auth_bytes = auth_string.encode("utf-8")
         auth_base64 = str(base64.b64encode(auth_bytes), "utf-8")
@@ -141,31 +252,60 @@ class SpotifyAPI:
             "code": self.auth_code,
             "redirect_uri": self.redirect_uri,
         }
-        result = post(url, headers=headers, data=data)
+
+        try:
+            result: Response = post(
+                url, headers=headers, data=data, timeout=10)
+        except requests.exceptions.Timeout:
+            print("The request to fetch the access token timed out after 10 seconds.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"An error occurred while fetching the access token: {e}")
+            sys.exit(1)
+
         result_json = json.loads(result.content)
 
         if "access_token" not in result_json:
             print("An error occurred while fetching the access token")
             sys.exit(1)
 
-        token = result_json["access_token"]
+        token: str = result_json["access_token"]
 
         return token
 
     @staticmethod
-    def get_auth_header(token):
-        headers = {
+    def get_auth_header(token: str) -> dict[str, str]:
+        """
+        Build the authorization header for Spotify API requests.
+
+            Parameters:
+                    token (str): The access token for the Spotify API
+
+            Returns:
+                    headers (dict[str, str]): The authorization header for Spotify API requests
+        """
+        headers: dict[str, str] = {
             "Authorization": "Bearer " + token
         }
 
         return headers
 
-    def get_playlist_response(self, token):
-        url = f"https://api.spotify.com/v1/users/{self.user_id}/playlists"
+    def get_playlist_response(self: object, token: str) -> list[dict[str, str]]:
+        """
+        Fetch the user's playlists from the Spotify API.
+
+                Parameters:
+                        token (str): The access token for the Spotify API
+
+                Returns:
+                        playlists (list[dict[str, str]]): The user's playlists
+        """
+        url: str = f"https://api.spotify.com/v1/users/{self.user_id}/playlists"
         headers = self.get_auth_header(token)
-        playlists = []
+        playlists: list[dict[str, str]] = []
 
         while url:
+            # TODO: Add timeout & try-except block for request timeout errors
             response = get(url, headers=headers)
             response_json = response.json()
 
@@ -181,7 +321,16 @@ class SpotifyAPI:
         return playlists
 
     @staticmethod
-    def extract_playlist_ids(playlists):
+    def extract_playlist_ids(playlists: list[dict[str, str]]) -> list[tuple[str, str]]:
+        """
+        Extract the playlist name and ID from the playlist response.
+
+            Parameters:
+                    playlists (list[dict[str, str]]): The playlist response from the Spotify API
+
+            Returns:
+                    playlists_name_id (list[tuple[str, str]]): The playlist name and ID
+        """
         playlists_name_id = []
 
         for playlist in playlists:
@@ -190,21 +339,31 @@ class SpotifyAPI:
 
         return playlists_name_id
 
-    def get_playlists(self, token):
+    def get_playlists(self: object, token: str) -> list[tuple[str, str]]:
+        """
+        Fethces the user's playlists and extracts the playlist name and ID.
+
+            Parameters:
+                    token (str): The access token for the Spotify API
+
+            Returns:
+                    playlists (list[tuple[str, str]]): The playlist name and ID
+        """
         playlists_response = self.get_playlist_response(token)
         playlists = self.extract_playlist_ids(playlists_response)
 
         return playlists
 
-    def get_track_response(self, playlist_id, token):
-        tracks = []
+    def get_track_response(self: object, playlist_id: str, token: str) -> list[dict[str, str]]:
+        tracks: list[dict[str, str]] = []
         url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
         headers = self.get_auth_header(token)
         while url:
-            response = get(url, headers=headers)
+            # TODO: Add timeout & try-except block for request timeout errors
+            response: Response = get(url, headers=headers)
             response_json = response.json()
             tracks.extend(response_json["items"])
-            url = response_json["next"]
+            url: str = response_json["next"]
 
         return tracks
 
@@ -236,12 +395,15 @@ class SpotifyAPI:
         return track_details
 
     @staticmethod
-    def download_track_image(image_url):
+    def download_track_image(image_url: str) -> Response | None:
         image_response = None
 
         try:
-            image_response = get(image_url)
+            image_response = get(image_url, timeout=10)
             image_response.raise_for_status()
+        except requests.exceptions.Timeout:
+            # Do nothing
+            pass
         except Exception as e:
             print(f"An error occurred while downloading the album art: {e}")
 
