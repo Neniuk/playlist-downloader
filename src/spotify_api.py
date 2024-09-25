@@ -14,15 +14,54 @@ from youtube_api import YoutubeAPI
 
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        authorization_success_page = """
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="description" content="Authorization Success" />
+                <title>Authorization Success</title>
+                <style>
+                    html,
+                    body {
+                        height: 100%;
+                        margin: 0;
+                        background-color: black;
+                        font-family: Arial, sans-serif;
+                        color: white;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    }
+                    .container {
+                        text-align: center;
+                    }
+                    h1 {
+                        font-size: 2em;
+                        color: white;
+                    }
+                    p {
+                        color: #808080;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Authorization Successful</h1>
+                    <p>You can now close this window and return to the terminal.</p>
+                </div>
+            </body>
+        </html>
+        """
+
         if self.path.startswith("/callback"):
             query = self.path.split('?', 1)[1]
             params = dict(qc.split('=') for qc in query.split('&'))
             code = params.get('code')
             self.send_response(200)
             self.end_headers()
-            with open('authorization_success.html', 'r') as file:
-                html_content = file.read()
-            self.wfile.write(html_content.encode('utf-8'))
+            self.wfile.write(authorization_success_page.encode('utf-8'))
             self.server.auth_code = code
 
 
@@ -32,9 +71,24 @@ class SpotifyAPI:
         self.client_id = os.getenv("CLIENT_ID")
         self.client_secret = os.getenv("CLIENT_SECRET")
         self.user_id = os.getenv("USER_ID")
-        self.redirect_uri = os.getenv("REDIRECT_URI")
+        # Redirect URI is defined in the Spotify Developer Dashboard
+        self.redirect_uri = "http://localhost:8080/callback"
         self.downloads_dir = os.getenv("DOWNLOADS_DIR")
         self.auth_code = None
+
+        if not self.client_id or not self.client_secret or not self.user_id:
+            print(
+                "Please set the environment variables CLIENT_ID, CLIENT_SECRET and USER_ID.")
+            sys.exit(1)
+
+        if self.client_id == "<Spotify API Client ID>" or self.client_secret == "<Spotify API Client Secret>" or self.user_id == "<Spotify User ID>":
+            print(
+                "Please set the environment variables CLIENT_ID, CLIENT_SECRET and USER_ID to their respective values.")
+            sys.exit(1)
+
+        if not self.downloads_dir:
+            print("Please set the environment variable DOWNLOADS_DIR to the directory where you want to save the downloaded tracks.")
+            sys.exit(1)
 
     def get_user_auth(self):
         auth_url = "https://accounts.spotify.com/authorize"
