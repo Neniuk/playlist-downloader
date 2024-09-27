@@ -10,6 +10,11 @@ This project allows you to list your playlists on Spotify, and download the trac
 Ready built binaries are available on the [releases page](https://github.com/Neniuk/playlist-downloader/releases). There are both a Linux and Windows (*.exe) version available.
 
 
+## Requirements
+
+You need to have ffmpeg installed before running the program, it is used in order to get just the mp3 audio files of the downloaded videos.
+
+
 ## Usage/Examples
 
 Before starting the application, you need to: 
